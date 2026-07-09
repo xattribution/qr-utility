@@ -50,6 +50,22 @@ Android Studio generate the wrapper on first open.)
 
 ---
 
+## Self-hosted download site (Docker)
+
+Want a little web page to hand the APK to your own devices? There's a one-container
+setup under [`web/`](web/README.md) that **compiles the APK from source on your host**
+(inside the Docker build) and serves it with a short description page.
+
+```bash
+# needs only Docker + the Compose plugin
+./update.sh          # clones/updates source, compiles the APK, starts the site on :8080
+```
+
+Re-run `./update.sh` anytime to pull the latest source, recompile, and redeploy.
+See [`web/README.md`](web/README.md) for details and configuration.
+
+---
+
 ## Build config
 
 | Setting        | Value                                             |
