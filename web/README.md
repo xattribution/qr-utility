@@ -40,7 +40,7 @@ curl -fsSL https://raw.githubusercontent.com/xattribution/qr-utility/main/update
 ./update.sh
 ```
 
-When it finishes, open **http://localhost:8080** (or `http://<host-ip>:8080`
+When it finishes, open **http://localhost:49730** (or `http://<host-ip>:49730`
 from your phone) and tap **Download APK**.
 
 > The first build downloads the Android SDK + Gradle inside the image, so it
@@ -63,7 +63,7 @@ Environment variables (all optional):
 
 | Variable       | Default            | Meaning                                  |
 |----------------|--------------------|------------------------------------------|
-| `QR_WEB_PORT`  | `8080`             | Host port the site listens on            |
+| `QR_WEB_PORT`  | `49730`             | Host port the site listens on            |
 | `QR_WEB_DIR`   | `~/qr-utility`     | Where `update.sh` clones/keeps the source|
 | `QR_BRANCH`    | `main`             | Branch to build from                     |
 | `QR_REPO_URL`  | this repo's URL    | Source repository                        |
@@ -80,7 +80,7 @@ QR_WEB_DIR=/srv/qr-utility ./update.sh # keep source under /srv
 ```bash
 # from the repository root
 docker compose build --pull      # compiles the APK from the current source
-docker compose up -d             # serve on :8080
+docker compose up -d             # serve on :49730
 docker compose logs -f           # watch it
 docker compose down              # stop
 ```
