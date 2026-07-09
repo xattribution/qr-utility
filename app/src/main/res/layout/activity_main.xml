@@ -54,7 +54,7 @@
         android:layout_height="0dp"
         android:layout_weight="1">
 
-        <!-- ---------- SCAN ---------- -->
+        <!-- ========== SCAN ========== -->
         <LinearLayout
             android:id="@+id/viewScan"
             android:layout_width="match_parent"
@@ -215,7 +215,7 @@
             </LinearLayout>
         </LinearLayout>
 
-        <!-- ---------- CREATE ---------- -->
+        <!-- ========== CREATE ========== -->
         <ScrollView
             android:id="@+id/viewCreate"
             android:layout_width="match_parent"
@@ -349,7 +349,7 @@
             </LinearLayout>
         </ScrollView>
 
-        <!-- ---------- LOG ---------- -->
+        <!-- ========== LOG ========== -->
         <LinearLayout
             android:id="@+id/viewLog"
             android:layout_width="match_parent"
