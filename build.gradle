@@ -1,0 +1,5 @@
+// Top-level build file. Known-good, mutually compatible versions (mid-2024).
+plugins {
+    id 'com.android.application' version '8.5.2' apply false
+    id 'org.jetbrains.kotlin.android' version '1.9.24' apply false
+}

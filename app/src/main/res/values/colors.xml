@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="bg">#FF0B0D10</color>
+    <color name="panel">#FF14171C</color>
+    <color name="well">#FF1B1F26</color>
+    <color name="line">#FF2A2F38</color>
+    <color name="line2">#FF3A4150</color>
+    <color name="ink">#FFF4F6F8</color>
+    <color name="muted">#FF8A93A0</color>
+    <color name="blue">#FF2F6BFF</color>
+    <color name="blue_press">#FF1E52D8</color>
+    <color name="ok">#FF2FD07B</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="black">#FF000000</color>
+    <color name="launcher_bg">#FF0B0D10</color>
+</resources>

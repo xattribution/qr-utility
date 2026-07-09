@@ -1,0 +1,429 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/bg">
+
+    <!-- ============ APP BAR ============ -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="@color/panel"
+        android:paddingHorizontal="14dp"
+        android:paddingVertical="12dp">
+
+        <TextView
+            android:id="@+id/tvAppId"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="QR·UTILITY"
+            android:textColor="@color/ink"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:fontFamily="monospace"
+            android:letterSpacing="0.2"/>
+
+        <View
+            android:id="@+id/statusDot"
+            android:layout_width="8dp"
+            android:layout_height="8dp"
+            android:layout_marginEnd="7dp"
+            android:background="@color/line2"/>
+
+        <TextView
+            android:id="@+id/tvStatus"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="STANDBY"
+            android:textColor="@color/muted"
+            android:textSize="10sp"
+            android:fontFamily="monospace"
+            android:letterSpacing="0.15"/>
+    </LinearLayout>
+
+    <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@color/line"/>
+
+    <!-- ============ CONTENT ============ -->
+    <FrameLayout
+        android:id="@+id/contentFrame"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <!-- ---------- SCAN ---------- -->
+        <LinearLayout
+            android:id="@+id/viewScan"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical">
+
+            <FrameLayout
+                android:id="@+id/camWrap"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:background="@color/black">
+
+                <com.journeyapps.barcodescanner.BarcodeView
+                    android:id="@+id/barcodeView"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"/>
+
+                <com.qrutility.ReticleView
+                    android:id="@+id/reticle"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"/>
+
+                <TextView
+                    android:id="@+id/tvVpHint"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="bottom"
+                    android:gravity="center"
+                    android:paddingBottom="12dp"
+                    android:text="CAMERA OFF — PRESS START"
+                    android:textColor="@color/muted"
+                    android:textSize="11sp"
+                    android:fontFamily="monospace"
+                    android:letterSpacing="0.1"/>
+            </FrameLayout>
+
+            <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@color/line"/>
+
+            <!-- camera controls -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:background="@color/line">
+
+                <LinearLayout
+                    android:id="@+id/btnStart"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="1dp"
+                    android:orientation="vertical"
+                    android:gravity="center"
+                    android:paddingVertical="12dp"
+                    android:background="@drawable/btn_panel"
+                    android:clickable="true"
+                    android:focusable="true">
+                    <ImageView android:layout_width="20dp" android:layout_height="20dp"
+                        android:src="@drawable/ic_scan" android:layout_marginBottom="5dp"/>
+                    <TextView android:id="@+id/tvStartLabel" android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" android:text="START"
+                        android:textColor="@color/ink" android:textSize="12sp"
+                        android:textStyle="bold" android:letterSpacing="0.05"/>
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/btnTorch"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="1dp"
+                    android:orientation="vertical"
+                    android:gravity="center"
+                    android:paddingVertical="12dp"
+                    android:background="@drawable/btn_panel"
+                    android:clickable="true"
+                    android:focusable="true">
+                    <ImageView android:layout_width="20dp" android:layout_height="20dp"
+                        android:src="@drawable/ic_torch" android:layout_marginBottom="5dp"/>
+                    <TextView android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" android:text="TORCH"
+                        android:textColor="@color/ink" android:textSize="12sp"
+                        android:textStyle="bold" android:letterSpacing="0.05"/>
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/btnImage"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:gravity="center"
+                    android:paddingVertical="12dp"
+                    android:background="@drawable/btn_panel"
+                    android:clickable="true"
+                    android:focusable="true">
+                    <ImageView android:layout_width="20dp" android:layout_height="20dp"
+                        android:src="@drawable/ic_image" android:layout_marginBottom="5dp"/>
+                    <TextView android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" android:text="IMAGE"
+                        android:textColor="@color/ink" android:textSize="12sp"
+                        android:textStyle="bold" android:letterSpacing="0.05"/>
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- result panel -->
+            <LinearLayout
+                android:id="@+id/resultPanel"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@color/panel"
+                android:padding="14dp"
+                android:visibility="gone">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="DECODED"
+                    android:textColor="@color/blue"
+                    android:textSize="10sp"
+                    android:fontFamily="monospace"
+                    android:letterSpacing="0.2"
+                    android:layout_marginBottom="8dp"/>
+
+                <ScrollView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:maxHeight="120dp"
+                    android:background="@drawable/well"
+                    android:padding="12dp">
+                    <TextView
+                        android:id="@+id/tvResultValue"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/ink"
+                        android:textSize="14sp"
+                        android:fontFamily="monospace"
+                        android:textIsSelectable="true"/>
+                </ScrollView>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:background="@color/line"
+                    android:layout_marginTop="12dp">
+                    <Button android:id="@+id/btnCopy" style="@style/CamAction"
+                        android:layout_marginEnd="1dp" android:text="COPY"/>
+                    <Button android:id="@+id/btnOpen" style="@style/CamAction"
+                        android:layout_marginEnd="1dp" android:text="OPEN"/>
+                    <Button android:id="@+id/btnShare" style="@style/CamAction"
+                        android:layout_marginEnd="1dp" android:text="SHARE"/>
+                    <Button android:id="@+id/btnRescan" style="@style/CamAction"
+                        android:text="RESCAN"/>
+                </LinearLayout>
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- ---------- CREATE ---------- -->
+        <ScrollView
+            android:id="@+id/viewCreate"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView style="@style/FieldLabel" android:text="CONTENT — TEXT · URL · ANYTHING"/>
+
+                <EditText
+                    android:id="@+id/etInput"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="96dp"
+                    android:gravity="top|start"
+                    android:background="@drawable/well"
+                    android:padding="12dp"
+                    android:textColor="@color/ink"
+                    android:textColorHint="@color/muted"
+                    android:textSize="15sp"
+                    android:fontFamily="monospace"
+                    android:inputType="textMultiLine|textNoSuggestions"
+                    android:hint="Type or paste here…"
+                    android:autofillHints=""/>
+
+                <TextView style="@style/FieldLabel" android:text="ERROR CORRECTION"
+                    android:layout_marginTop="16dp"/>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:background="@color/line">
+                    <TextView android:id="@+id/segL" style="@style/Seg"
+                        android:layout_marginEnd="1dp" android:text="L · 7%"/>
+                    <TextView android:id="@+id/segM" style="@style/Seg"
+                        android:layout_marginEnd="1dp" android:text="M · 15%"/>
+                    <TextView android:id="@+id/segQ" style="@style/Seg"
+                        android:layout_marginEnd="1dp" android:text="Q · 25%"/>
+                    <TextView android:id="@+id/segH" style="@style/Seg"
+                        android:text="H · 30%"/>
+                </LinearLayout>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="Higher = more damage-tolerant, denser code."
+                    android:textColor="@color/muted"
+                    android:textSize="11sp"
+                    android:fontFamily="monospace"/>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:gravity="center_horizontal"
+                    android:background="@drawable/panel_box"
+                    android:padding="18dp"
+                    android:layout_marginTop="16dp">
+
+                    <FrameLayout
+                        android:id="@+id/qrFrame"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:background="@drawable/qr_frame"
+                        android:padding="14dp"
+                        android:visibility="gone">
+                        <ImageView
+                            android:id="@+id/ivQr"
+                            android:layout_width="240dp"
+                            android:layout_height="240dp"
+                            android:scaleType="fitCenter"/>
+                    </FrameLayout>
+
+                    <TextView
+                        android:id="@+id/tvQrEmpty"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:paddingVertical="40dp"
+                        android:text="AWAITING INPUT"
+                        android:textColor="@color/muted"
+                        android:textSize="12sp"
+                        android:fontFamily="monospace"
+                        android:letterSpacing="0.15"/>
+
+                    <TextView
+                        android:id="@+id/tvQrMeta"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:textColor="@color/muted"
+                        android:textSize="11sp"
+                        android:fontFamily="monospace"
+                        android:letterSpacing="0.1"/>
+                </LinearLayout>
+
+                <Button
+                    android:id="@+id/btnDownload"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="14dp"
+                    android:text="SAVE PNG"
+                    android:textColor="@color/white"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.1"
+                    android:background="@drawable/btn_blue"
+                    android:enabled="false"
+                    android:stateListAnimator="@null"/>
+
+                <TextView
+                    android:id="@+id/btnAddLog"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:gravity="center"
+                    android:paddingVertical="13dp"
+                    android:text="ADD TO LOG"
+                    android:textColor="@color/ink"
+                    android:textStyle="bold"
+                    android:textSize="13sp"
+                    android:letterSpacing="0.05"
+                    android:background="@drawable/outline_box"
+                    android:clickable="true"
+                    android:focusable="true"/>
+            </LinearLayout>
+        </ScrollView>
+
+        <!-- ---------- LOG ---------- -->
+        <LinearLayout
+            android:id="@+id/viewLog"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:background="@color/panel"
+                android:paddingHorizontal="16dp"
+                android:paddingVertical="12dp">
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="HISTORY"
+                    android:textColor="@color/muted"
+                    android:textSize="11sp"
+                    android:fontFamily="monospace"
+                    android:letterSpacing="0.2"/>
+                <TextView
+                    android:id="@+id/btnClear"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:paddingHorizontal="14dp"
+                    android:paddingVertical="8dp"
+                    android:text="CLEAR"
+                    android:textColor="@color/muted"
+                    android:textSize="12sp"
+                    android:fontFamily="monospace"
+                    android:background="@drawable/outline_box"
+                    android:clickable="true"
+                    android:focusable="true"/>
+            </LinearLayout>
+
+            <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@color/line"/>
+
+            <ScrollView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+                <LinearLayout
+                    android:id="@+id/logContainer"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"/>
+            </ScrollView>
+        </LinearLayout>
+    </FrameLayout>
+
+    <!-- ============ TAB BAR ============ -->
+    <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@color/line"/>
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:background="@color/panel">
+
+        <LinearLayout android:id="@+id/tabScan" style="@style/Tab">
+            <ImageView android:id="@+id/icTabScan" style="@style/TabIcon" android:src="@drawable/ic_scan"/>
+            <TextView android:id="@+id/tvTabScan" style="@style/TabLabel" android:text="SCAN"/>
+        </LinearLayout>
+
+        <LinearLayout android:id="@+id/tabCreate" style="@style/Tab">
+            <ImageView android:id="@+id/icTabCreate" style="@style/TabIcon" android:src="@drawable/ic_create"/>
+            <TextView android:id="@+id/tvTabCreate" style="@style/TabLabel" android:text="CREATE"/>
+        </LinearLayout>
+
+        <LinearLayout android:id="@+id/tabLog" style="@style/Tab">
+            <ImageView android:id="@+id/icTabLog" style="@style/TabIcon" android:src="@drawable/ic_log"/>
+            <TextView android:id="@+id/tvTabLog" style="@style/TabLabel" android:text="LOG"/>
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>
