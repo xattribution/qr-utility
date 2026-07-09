@@ -20,7 +20,7 @@ set -euo pipefail
 REPO_URL="${QR_REPO_URL:-https://github.com/xattribution/qr-utility.git}"
 BRANCH="${QR_BRANCH:-main}"
 DIR="${QR_WEB_DIR:-$HOME/qr-utility}"
-PORT="${QR_WEB_PORT:-8080}"
+PORT="${QR_WEB_PORT:-49730}"
 
 say() { printf '\033[1;34m==>\033[0m %s\n' "$*"; }
 die() { printf '\033[1;31mError:\033[0m %s\n' "$*" >&2; exit 1; }

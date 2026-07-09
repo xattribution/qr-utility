@@ -58,7 +58,7 @@ setup under [`web/`](web/README.md) that **compiles the APK from source on your 
 
 ```bash
 # needs only Docker + the Compose plugin
-./update.sh          # clones/updates source, compiles the APK, starts the site on :8080
+./update.sh          # clones/updates source, compiles the APK, starts the site on :49730
 ```
 
 Re-run `./update.sh` anytime to pull the latest source, recompile, and redeploy.

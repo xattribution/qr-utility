@@ -1,7 +1,7 @@
 # QR Utility — self-hosted download site.
 #
 # `docker compose up -d --build` compiles the APK from the current source
-# (inside the image build) and serves it at http://<host>:8080
+# (inside the image build) and serves it at http://<host>:49730
 services:
   qr-utility-web:
     build:
@@ -14,5 +14,7 @@ services:
     image: qr-utility-web:latest
     container_name: qr-utility-web
     ports:
-      - "${QR_WEB_PORT:-8080}:80"
+      # high port in the dynamic range to avoid clashing with other containers;
+      # override with QR_WEB_PORT
+      - "${QR_WEB_PORT:-49730}:80"
     restart: unless-stopped
