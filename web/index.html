@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>QR Utility — download</title>
+<style>
+  :root{
+    --bg:#0B0D10; --panel:#14171C; --well:#1B1F26; --line:#2A2F38; --line2:#3A4150;
+    --ink:#F4F6F8; --muted:#8A93A0; --blue:#2F6BFF; --blue2:#1E52D8; --ok:#2FD07B;
+    --radius:14px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--bg); color:var(--ink);
+    font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.55; -webkit-font-smoothing:antialiased;
+  }
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+  .wrap{max-width:820px;margin:0 auto;padding:32px 20px 64px}
+  header{display:flex;align-items:center;gap:12px;margin-bottom:8px}
+  .logo{
+    width:44px;height:44px;border-radius:11px;flex:0 0 auto;
+    background:linear-gradient(145deg,#182033,#0e1420);
+    border:1px solid var(--line2);display:grid;place-items:center;
+  }
+  .logo svg{width:26px;height:26px}
+  h1{font-size:20px;margin:0;letter-spacing:.14em;font-weight:700}
+  .tag{color:var(--muted);font-size:11px;letter-spacing:.22em;margin-top:2px}
+  .hero{
+    margin-top:22px;background:var(--panel);border:1px solid var(--line);
+    border-radius:var(--radius);padding:22px;
+  }
+  .lead{font-size:16px;color:#d7dce3;margin:0 0 4px}
+  .pills{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+  .pill{
+    font-size:11px;letter-spacing:.06em;color:var(--muted);
+    border:1px solid var(--line2);border-radius:999px;padding:5px 11px;
+  }
+  .pill b{color:var(--ink);font-weight:600}
+
+  .dl{
+    margin-top:18px;display:flex;flex-wrap:wrap;align-items:center;gap:14px;
+  }
+  .btn{
+    appearance:none;border:0;cursor:pointer;text-decoration:none;
+    background:var(--blue);color:#fff;font-weight:700;letter-spacing:.06em;
+    padding:15px 24px;border-radius:12px;font-size:15px;display:inline-flex;
+    align-items:center;gap:10px;transition:background .15s ease,transform .05s ease;
+  }
+  .btn:hover{background:var(--blue2)}
+  .btn:active{transform:translateY(1px)}
+  .btn[aria-disabled="true"]{background:var(--well);color:var(--muted);cursor:not-allowed;pointer-events:none}
+  .btn svg{width:18px;height:18px}
+  .meta{font-size:12px;color:var(--muted)}
+  .meta b{color:var(--ink);font-weight:600}
+  .meta .dot{color:var(--line2);padding:0 6px}
+
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:24px}
+  @media(max-width:620px){.grid{grid-template-columns:1fr}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px}
+  .card h3{margin:0 0 6px;font-size:13px;letter-spacing:.1em;color:var(--blue)}
+  .card p{margin:0;color:#c4cad2;font-size:14px}
+
+  .steps{margin-top:24px;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px}
+  .steps h2{font-size:13px;letter-spacing:.16em;color:var(--muted);margin:0 0 12px;text-transform:uppercase}
+  ol{margin:0;padding-left:20px}
+  ol li{margin:6px 0;color:#c4cad2;font-size:14px}
+  code{background:var(--well);border:1px solid var(--line);border-radius:6px;padding:1px 6px;font-size:12.5px}
+
+  footer{margin-top:28px;color:var(--muted);font-size:12px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+  footer a{color:var(--blue);text-decoration:none}
+  .note{margin-top:14px;font-size:12px;color:var(--muted)}
+  .ok{color:var(--ok)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <span class="logo" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#2F6BFF" stroke-width="2" stroke-linecap="square">
+        <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+        <rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3M20 14v.01M14 20h.01M20 20v-3M17 20h.01"/>
+      </svg>
+    </span>
+    <div>
+      <h1>QR&nbsp;·&nbsp;UTILITY</h1>
+      <div class="tag mono">OFFLINE ANDROID SCANNER + GENERATOR</div>
+    </div>
+  </header>
+
+  <section class="hero">
+    <p class="lead">A small, offline QR-code <b>scanner</b> and <b>generator</b> for Android.</p>
+    <p style="margin:0;color:#c4cad2">
+      Read codes with the camera or from a saved image, generate a code from any text or URL,
+      and keep a local history log. No network permission, no accounts, no tracking — safe for
+      air-gapped use.
+    </p>
+
+    <div class="pills mono">
+      <span class="pill">Android <b>8.0+</b></span>
+      <span class="pill">No <b>INTERNET</b> permission</span>
+      <span class="pill">Fully <b>offline</b></span>
+      <span class="pill">Debug build · sideload</span>
+    </div>
+
+    <div class="dl">
+      <a id="dlBtn" class="btn" href="/download/qr-utility.apk" download>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14"/>
+        </svg>
+        <span id="dlLabel">Download APK</span>
+      </a>
+      <div class="meta mono" id="meta">Loading build info…</div>
+    </div>
+  </section>
+
+  <div class="grid">
+    <div class="card"><h3>SCAN</h3><p>Point the camera at any QR code, or decode one from a photo in your gallery. Torch toggle for low light.</p></div>
+    <div class="card"><h3>CREATE</h3><p>Turn any text or URL into a QR code with selectable error-correction (L/M/Q/H) and save it as a PNG.</p></div>
+    <div class="card"><h3>HISTORY</h3><p>Every scan and generated code is kept in a local log (last 200), stored on-device only — tap to copy.</p></div>
+    <div class="card"><h3>PRIVATE</h3><p>No network permission at all. Nothing leaves your phone; there are no accounts and no analytics.</p></div>
+  </div>
+
+  <div class="steps">
+    <h2>Install on your phone</h2>
+    <ol>
+      <li>Tap <b>Download APK</b> above (or open this page on the phone and download it there).</li>
+      <li>Open the downloaded <code>qr-utility.apk</code>.</li>
+      <li>If prompted, allow your browser / file manager to <b>install unknown apps</b> (one-time).</li>
+      <li>Open <b>QR Utility</b> and grant the camera permission on first scan.</li>
+    </ol>
+    <p class="note">This is a <b>debug</b> build intended for personal sideloading, not the Play Store.</p>
+  </div>
+
+  <footer class="mono">
+    <span>Self-hosted · compiled on this machine from source.</span>
+    <span class="dot">·</span>
+    <a id="srcLink" href="https://github.com/xattribution/qr-utility" target="_blank" rel="noreferrer">source</a>
+  </footer>
+
+</div>
+
+<script>
+  (function () {
+    var meta = document.getElementById('meta');
+    var btn = document.getElementById('dlBtn');
+    var label = document.getElementById('dlLabel');
+
+    function human(bytes) {
+      if (!bytes && bytes !== 0) return '';
+      var u = ['B','KB','MB','GB'], i = 0, n = Number(bytes);
+      while (n >= 1024 && i < u.length - 1) { n /= 1024; i++; }
+      return (i === 0 ? n : n.toFixed(1)) + ' ' + u[i];
+    }
+    function fmtDate(s) {
+      if (!s) return '';
+      var d = new Date(s);
+      return isNaN(d) ? s : d.toLocaleString(undefined, { year:'numeric', month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' });
+    }
+
+    fetch('version.json', { cache: 'no-store' })
+      .then(function (r) { return r.ok ? r.json() : Promise.reject(); })
+      .then(function (v) {
+        if (v && v.available === false) {
+          btn.setAttribute('aria-disabled', 'true');
+          label.textContent = 'APK not built yet';
+          meta.textContent = 'Rebuild the container to compile the APK.';
+          return;
+        }
+        var bits = [];
+        if (v.version_name) bits.push('v' + v.version_name + (v.version_code ? ' (' + v.version_code + ')' : ''));
+        if (v.size_bytes)   bits.push(human(v.size_bytes));
+        if (v.built_at)     bits.push('built ' + fmtDate(v.built_at));
+        if (v.commit && v.commit !== 'unknown') bits.push('#' + String(v.commit).slice(0, 7));
+        meta.innerHTML = bits.map(function (b, i) {
+          return (i ? '<span class="dot">·</span>' : '') + '<b>' + b + '</b>';
+        }).join('');
+        if (v.download_url) btn.setAttribute('href', v.download_url);
+      })
+      .catch(function () {
+        meta.textContent = 'Build info unavailable.';
+      });
+  })();
+</script>
+</body>
+</html>

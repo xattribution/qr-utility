@@ -1,0 +1,20 @@
+# Keep the Docker build context small and reproducible.
+# NOTE: the Android source under app/ must NOT be ignored — the builder needs it.
+.git
+.github
+**/build/
+.gradle/
+**/.gradle/
+.idea/
+*.iml
+local.properties
+captures/
+.externalNativeBuild/
+.cxx/
+.DS_Store
+
+# host-side helpers that aren't needed inside the image
+update.sh
+docker-compose.yml
+README.md
+web/README.md
