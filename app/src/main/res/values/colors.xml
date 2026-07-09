@@ -10,6 +10,7 @@
     <color name="blue">#FF2F6BFF</color>
     <color name="blue_press">#FF1E52D8</color>
     <color name="ok">#FF2FD07B</color>
+    <color name="warn">#FFF5A623</color>
     <color name="white">#FFFFFFFF</color>
     <color name="black">#FF000000</color>
     <color name="launcher_bg">#FF0B0D10</color>

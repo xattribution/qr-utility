@@ -464,6 +464,21 @@ class MainActivity : AppCompatActivity() {
     private fun toast(msg: String) = Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
     private fun dp(v: Int) = (v * resources.displayMetrics.density).toInt()
 
+    /* ---------------- status indicator ---------------- */
+    private enum class Status { OFF, OK, WARN }
+
+    private fun setStatus(text: String, status: Status) {
+        val colorRes = when (status) {
+            Status.OFF -> R.color.muted
+            Status.OK -> R.color.ok
+            Status.WARN -> R.color.warn
+        }
+        val c = ContextCompat.getColor(this, colorRes)
+        b.tvStatus.text = text
+        b.tvStatus.setTextColor(c)
+        b.statusDot.setBackgroundColor(c)
+    }
+
     /* ---------------- lifecycle ---------------- */
     override fun onResume() {
         super.onResume()
