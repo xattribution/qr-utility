@@ -92,17 +92,17 @@
   </header>
 
   <section class="hero">
-    <p class="lead">A small, offline QR-code <b>scanner</b> and <b>generator</b> for Android.</p>
+    <p class="lead">A small QR-code <b>scanner</b> and <b>generator</b> for Android.</p>
     <p style="margin:0;color:#c4cad2">
       Read codes with the camera or from a saved image, generate a code from any text or URL,
-      and keep a local history log. No network permission, no accounts, no tracking — safe for
-      air-gapped use.
+      and keep a local history log. Optionally connect a database — on-device, LAN, or remote —
+      to batch-generate codes from a table and record scans. No accounts, no tracking.
     </p>
 
     <div class="pills mono">
       <span class="pill">Android <b>8.0+</b></span>
-      <span class="pill">No <b>INTERNET</b> permission</span>
-      <span class="pill">Fully <b>offline</b></span>
+      <span class="pill">Works <b>offline</b></span>
+      <span class="pill">Optional <b>DB</b>: SQLite · Postgres · MySQL</span>
       <span class="pill">Debug build · sideload</span>
     </div>
 
@@ -121,7 +121,8 @@
     <div class="card"><h3>SCAN</h3><p>Point the camera at any QR code, or decode one from a photo in your gallery. Torch toggle for low light.</p></div>
     <div class="card"><h3>CREATE</h3><p>Turn any text or URL into a QR code with selectable error-correction (L/M/Q/H) and save it as a PNG.</p></div>
     <div class="card"><h3>HISTORY</h3><p>Every scan and generated code is kept in a local log (last 200), stored on-device only — tap to copy.</p></div>
-    <div class="card"><h3>PRIVATE</h3><p>No network permission at all. Nothing leaves your phone; there are no accounts and no analytics.</p></div>
+    <div class="card"><h3>DATA</h3><p>Optional database mode: on-device SQLite, or a LAN/remote PostgreSQL or MySQL. Batch-generate QR PNGs from a query and record scans back.</p></div>
+    <div class="card"><h3>PRIVATE</h3><p>No accounts, no analytics, no tracking. Database sync is opt-in and connects only where you point it; credentials are stored encrypted on-device.</p></div>
   </div>
 
   <div class="steps">

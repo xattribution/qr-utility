@@ -1,8 +1,13 @@
 # QR Utility — Android
 
-A small, offline, instrument-styled QR **scanner + generator**. Black / blue / white,
-no network permission, no accounts, no tracking. Reads codes with the camera or from a
-saved image, generates codes from any text/URL, and keeps a local history log.
+A small, instrument-styled QR **scanner + generator**. Black / blue / white,
+no accounts, no tracking. Reads codes with the camera or from a saved image,
+generates codes from any text/URL, keeps a local history log, and can optionally
+read/write a database (on-device, LAN, or remote) to batch-generate codes and
+record scans.
+
+The camera opens automatically on launch, and the scan reticle shows activity by
+cycling its corner brackets grey → blue → green.
 
 ---
 
@@ -84,9 +89,31 @@ See [`web/README.md`](web/README.md) for details and configuration.
 - **Camera** needs a real device (or an emulator with a virtual/webcam camera) and a
   runtime permission prompt on first use. That's exactly why the HTML version couldn't
   open the camera — a sandboxed web preview can't grant it.
-- **No INTERNET permission.** Fully offline; safe for air-gapped use.
 - **IMAGE** button decodes a QR from any picture in your gallery — a fallback when the
   live camera isn't available.
 - **Saved PNGs** go to `Pictures/QRUtility` (via MediaStore on Android 10+, or a direct
   file write with a storage prompt on 8–9).
 - **History** is stored locally in SharedPreferences (last 200 entries), never uploaded.
+
+## Database (DATA tab)
+
+Optional. Three source modes, chosen per connection:
+
+- **On-device (SQLite)** — fully offline. Import a CSV into a local `records`
+  table, batch-generate a QR PNG per row into `Pictures/QRUtility`, save scans to
+  a local `scans` table, and export them to CSV in `Download/QRUtility`.
+- **LAN / remote database** — connect directly to **PostgreSQL** or
+  **MySQL/MariaDB**. A `SELECT` supplies the rows to generate from; an `INSERT`
+  records scans. Test the connection before saving.
+- **Autodiscover** — "Scan local network" probes your `/24` for open Postgres
+  (5432) and MySQL (3306) ports and pre-fills a connection.
+
+Notes:
+- The app now declares the **`INTERNET`** permission (plus network-state) for the
+  LAN/remote modes. On-device mode uses no network. This is a change from the
+  earlier air-gapped design.
+- Connection **credentials are stored encrypted** (EncryptedSharedPreferences,
+  Android Keystore-backed). All database I/O runs off the main thread.
+- Direct phone→database access means the DB must be reachable from the phone and
+  its credentials live on the device — fine for a trusted LAN, worth weighing for
+  anything exposed to the internet.
