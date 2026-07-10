@@ -60,6 +60,7 @@ import com.qrutility.data.DataSource
 import com.qrutility.data.DbExecutor
 import com.qrutility.data.DbType
 import com.qrutility.data.JdbcSource
+import com.qrutility.data.LanScanner
 import com.qrutility.data.LocalDataSource
 import com.qrutility.data.LocalDb
 import com.qrutility.data.ProfileStore
@@ -528,19 +529,53 @@ class MainActivity : AppCompatActivity() {
         labels.add("On-device (SQLite)")
         profiles.forEach { labels.add("${it.name}  ·  ${it.type}") }
         labels.add("＋ Add connection…")
+        labels.add("⌕ Scan local network…")
         AlertDialog.Builder(this)
             .setTitle("Data connection")
             .setItems(labels.toTypedArray()) { _, which ->
-                when {
-                    which == 0 -> activateLocal()
-                    which == labels.size - 1 -> showConnectionEditor(null)
+                when (which) {
+                    0 -> activateLocal()
+                    labels.size - 2 -> showConnectionEditor(null)
+                    labels.size - 1 -> showLanScan()
                     else -> activateProfile(profiles[which - 1])
                 }
             }
             .show()
     }
 
-    private fun showConnectionEditor(existing: ConnectionProfile?) {
+    private fun showLanScan() {
+        val progress = AlertDialog.Builder(this)
+            .setTitle("Scanning local network…")
+            .setMessage("Probing for PostgreSQL (5432) and MySQL (3306) hosts.")
+            .setCancelable(true)
+            .show()
+        DbExecutor.run({ LanScanner.discover() }) { res ->
+            progress.dismiss()
+            res.onSuccess { found ->
+                if (found.isEmpty()) {
+                    toast("No databases found on the local network")
+                } else {
+                    val items = found.map { "${it.host}:${it.port}  ·  ${it.type}" }
+                    AlertDialog.Builder(this)
+                        .setTitle("Found ${found.size}")
+                        .setItems(items.toTypedArray()) { _, i ->
+                            val d = found[i]
+                            showConnectionEditor(
+                                null,
+                                ConnectionProfile(
+                                    id = UUID.randomUUID().toString(),
+                                    name = "${d.type} @ ${d.host}",
+                                    type = d.type, host = d.host, port = d.port
+                                )
+                            )
+                        }
+                        .show()
+                }
+            }.onFailure { toast("Scan failed: ${it.message}") }
+        }
+    }
+
+    private fun showConnectionEditor(existing: ConnectionProfile?, prefill: ConnectionProfile? = null) {
         val view = layoutInflater.inflate(R.layout.dialog_connection, null)
         val etName = view.findViewById<EditText>(R.id.etName)
         val spType = view.findViewById<Spinner>(R.id.spType)
@@ -559,7 +594,7 @@ class MainActivity : AppCompatActivity() {
             this, android.R.layout.simple_spinner_dropdown_item, types.map { it.name }
         )
 
-        existing?.let { p ->
+        (existing ?: prefill)?.let { p ->
             etName.setText(p.name)
             etHost.setText(p.host)
             if (p.port > 0) etPort.setText(p.port.toString())
