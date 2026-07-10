@@ -48,6 +48,12 @@ import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel
 import com.journeyapps.barcodescanner.BarcodeCallback
 import com.journeyapps.barcodescanner.BarcodeResult
 import com.journeyapps.barcodescanner.DefaultDecoderFactory
+import com.qrutility.data.BatchExporter
+import com.qrutility.data.CsvUtil
+import com.qrutility.data.DataSource
+import com.qrutility.data.DbExecutor
+import com.qrutility.data.LocalDataSource
+import com.qrutility.data.LocalDb
 import com.qrutility.databinding.ActivityMainBinding
 import org.json.JSONArray
 import org.json.JSONObject
@@ -71,6 +77,10 @@ class MainActivity : AppCompatActivity() {
     private var currentBitmap: Bitmap? = null
     private var pendingSave: Bitmap? = null
 
+    private val localDb by lazy { LocalDb(this) }
+    private lateinit var dataSource: DataSource
+    private var saveScansToDb = false
+
     private val prefs by lazy { getSharedPreferences("qrutil", MODE_PRIVATE) }
     private val handler = Handler(Looper.getMainLooper())
     private val genRunnable = Runnable { generateQr() }
@@ -89,6 +99,9 @@ class MainActivity : AppCompatActivity() {
     }
     private val pickImage = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         uri?.let { decodeImage(it) }
+    }
+    private val pickCsv = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        uri?.let { importCsv(it) }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -141,6 +154,22 @@ class MainActivity : AppCompatActivity() {
         // log
         b.btnClear.setOnClickListener { onClearTap() }
 
+        // data
+        dataSource = LocalDataSource(localDb)
+        b.tabData.setOnClickListener { showTab(3) }
+        b.tvDbConn.text = dataSource.label
+        b.btnAddConn.setOnClickListener { toast("Network connections: coming soon") }
+        b.btnImportCsv.setOnClickListener { pickCsv.launch("*/*") }
+        b.btnClearRecords.setOnClickListener {
+            DbExecutor.run({ localDb.clearRecords() }) { refreshDataCounts() }
+        }
+        b.btnGenerateBatch.setOnClickListener { generateBatch() }
+        b.swSaveScans.setOnCheckedChangeListener { _, checked -> saveScansToDb = checked }
+        b.btnExportScans.setOnClickListener { exportScans() }
+        b.btnClearScans.setOnClickListener {
+            DbExecutor.run({ localDb.clearScans() }) { refreshDataCounts() }
+        }
+
         setStatus("STANDBY", Status.OFF)
         showTab(0)   // opens the Scan tab and auto-starts the camera
     }
@@ -151,10 +180,12 @@ class MainActivity : AppCompatActivity() {
         b.viewScan.visibility = if (i == 0) View.VISIBLE else View.GONE
         b.viewCreate.visibility = if (i == 1) View.VISIBLE else View.GONE
         b.viewLog.visibility = if (i == 2) View.VISIBLE else View.GONE
+        b.viewData.visibility = if (i == 3) View.VISIBLE else View.GONE
 
         styleTab(b.tvTabScan, b.icTabScan, i == 0)
         styleTab(b.tvTabCreate, b.icTabCreate, i == 1)
         styleTab(b.tvTabLog, b.icTabLog, i == 2)
+        styleTab(b.tvTabData, b.icTabData, i == 3)
 
         if (i == 0) {
             when {
@@ -166,6 +197,7 @@ class MainActivity : AppCompatActivity() {
             b.barcodeView.pause()
         }
         if (i == 2) renderLog()
+        if (i == 3) refreshDataCounts()
     }
 
     private fun styleTab(label: TextView, icon: ImageView, active: Boolean) {
@@ -224,6 +256,12 @@ class MainActivity : AppCompatActivity() {
         b.resultPanel.visibility = View.VISIBLE
         setStatus("MATCH", Status.OK)
         logAdd("scan", text)
+        if (saveScansToDb) {
+            DbExecutor.run({ dataSource.insertScan(text, "scan") }) { res ->
+                res.onFailure { toast("DB save failed: ${it.message}") }
+                if (currentTab == 3) refreshDataCounts()
+            }
+        }
     }
 
     private fun rescan() {
@@ -433,6 +471,84 @@ class MainActivity : AppCompatActivity() {
             disarm.run()
             renderLog()
             toast("Log cleared")
+        }
+    }
+
+    /* ---------------- data / database ---------------- */
+    private fun refreshDataCounts() {
+        DbExecutor.run({ localDb.recordCount() to localDb.scanCount() }) { res ->
+            res.onSuccess { (records, scans) ->
+                b.tvRecordCount.text = "$records rows loaded"
+                b.tvScanCount.text = "$scans scans stored"
+            }
+        }
+    }
+
+    private fun importCsv(uri: Uri) {
+        b.tvDbStatus.text = "Importing…"
+        DbExecutor.run({
+            val text = contentResolver.openInputStream(uri)
+                ?.bufferedReader()?.use { it.readText() } ?: ""
+            val rows = CsvUtil.parse(text)
+            localDb.replaceRecords(rows)
+            rows.size
+        }) { res ->
+            res.onSuccess { n ->
+                b.tvDbStatus.text = "Imported $n rows"
+                refreshDataCounts()
+            }.onFailure { b.tvDbStatus.text = "Import failed: ${it.message}" }
+        }
+    }
+
+    private fun generateBatch() {
+        val ec = ecLevel
+        b.btnGenerateBatch.isEnabled = false
+        b.tvGenStatus.text = "Reading rows…"
+        DbExecutor.run({
+            val rows = dataSource.fetchRows()
+            if (rows.isEmpty()) throw IllegalStateException("No rows to generate")
+            BatchExporter.export(this, rows, ec, "batch-${System.currentTimeMillis()}")
+        }) { res ->
+            b.btnGenerateBatch.isEnabled = true
+            res.onSuccess { r ->
+                b.tvGenStatus.text = "Saved ${r.saved} PNGs → ${r.location}" +
+                    if (r.failed > 0) "  (${r.failed} failed)" else ""
+            }.onFailure { b.tvGenStatus.text = "Generate failed: ${it.message}" }
+        }
+    }
+
+    private fun exportScans() {
+        b.tvDbStatus.text = "Exporting…"
+        DbExecutor.run({
+            val scans = localDb.scans()
+            if (scans.isEmpty()) throw IllegalStateException("No scans to export")
+            val csv = CsvUtil.buildScansCsv(scans)
+            val loc = saveCsvToDownloads("qr-scans-${System.currentTimeMillis()}.csv", csv)
+            scans.size to loc
+        }) { res ->
+            res.onSuccess { (n, loc) -> b.tvDbStatus.text = "Exported $n scans → $loc" }
+                .onFailure { b.tvDbStatus.text = "Export failed: ${it.message}" }
+        }
+    }
+
+    private fun saveCsvToDownloads(name: String, text: String): String {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val values = ContentValues().apply {
+                put(MediaStore.Downloads.DISPLAY_NAME, name)
+                put(MediaStore.Downloads.MIME_TYPE, "text/csv")
+                put(MediaStore.Downloads.RELATIVE_PATH, "Download/QRUtility")
+            }
+            val uri = contentResolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
+                ?: throw IllegalStateException("Could not create file")
+            contentResolver.openOutputStream(uri)?.use { it.write(text.toByteArray()) }
+                ?: throw IllegalStateException("Could not write file")
+            "Download/QRUtility/$name"
+        } else {
+            val dir = File(getExternalFilesDir(null), "exports")
+            if (!dir.exists()) dir.mkdirs()
+            val f = File(dir, name)
+            f.writeText(text)
+            f.absolutePath
         }
     }
 
