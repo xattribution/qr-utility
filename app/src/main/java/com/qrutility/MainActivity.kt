@@ -1,6 +1,7 @@
 package com.qrutility
 
 import android.Manifest
+import android.animation.ArgbEvaluator
 import android.animation.ValueAnimator
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -140,8 +141,8 @@ class MainActivity : AppCompatActivity() {
         // log
         b.btnClear.setOnClickListener { onClearTap() }
 
-        showTab(0)
         setStatus("STANDBY", Status.OFF)
+        showTab(0)   // opens the Scan tab and auto-starts the camera
     }
 
     /* ---------------- navigation ---------------- */
@@ -156,7 +157,11 @@ class MainActivity : AppCompatActivity() {
         styleTab(b.tvTabLog, b.icTabLog, i == 2)
 
         if (i == 0) {
-            if (scanning && hasCamera()) b.barcodeView.resume()
+            when {
+                scanning -> if (hasCamera()) b.barcodeView.resume()
+                // auto-open the camera when entering Scan, unless a result is on screen
+                !awaitingRescan && b.resultPanel.visibility != View.VISIBLE -> startScan()
+            }
         } else {
             b.barcodeView.pause()
         }
@@ -179,6 +184,7 @@ class MainActivity : AppCompatActivity() {
         awaitingRescan = false
         b.resultPanel.visibility = View.GONE
         b.barcodeView.resume()
+        b.reticle.setScanning(true)
         b.tvStartLabel.text = "STOP"
         b.tvVpHint.text = "ALIGN CODE WITHIN FRAME"
         setStatus("SCANNING", Status.OK)
@@ -187,10 +193,11 @@ class MainActivity : AppCompatActivity() {
     private fun stopScan() {
         scanning = false
         b.barcodeView.pause()
+        b.reticle.setScanning(false)
         if (torchOn) { torchOn = false; b.barcodeView.setTorch(false); b.btnTorch.setBackgroundResource(R.drawable.btn_panel) }
         b.tvStartLabel.text = "START"
         if (b.resultPanel.visibility != View.VISIBLE) {
-            b.tvVpHint.text = "CAMERA OFF — PRESS START"
+            b.tvVpHint.text = "CAMERA OFF — TAP START TO RESUME"
             setStatus("STANDBY", Status.OFF)
         }
     }
@@ -207,6 +214,7 @@ class MainActivity : AppCompatActivity() {
         awaitingRescan = true
         scanning = false
         b.barcodeView.pause()
+        b.reticle.lock()
         if (torchOn) { torchOn = false; b.barcodeView.setTorch(false); b.btnTorch.setBackgroundResource(R.drawable.btn_panel) }
         buzz()
         b.tvStartLabel.text = "START"
@@ -491,28 +499,66 @@ class MainActivity : AppCompatActivity() {
     }
 }
 
-/* ==================== reticle overlay ==================== */
+/* ==================== reticle overlay ====================
+ * Scanning state is shown by the corner brackets cycling colour
+ * grey -> blue -> green (no sweeping line). A successful decode
+ * snaps them to solid green.
+ */
 class ReticleView(context: Context, attrs: AttributeSet?) : View(context, attrs) {
 
+    private val grey = Color.parseColor("#8A93A0")
     private val blue = Color.parseColor("#2F6BFF")
+    private val green = Color.parseColor("#2FD07B")
+
+    private val evaluator = ArgbEvaluator()
     private val bracket = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = blue; style = Paint.Style.STROKE; strokeCap = Paint.Cap.SQUARE
+        color = grey; style = Paint.Style.STROKE; strokeCap = Paint.Cap.SQUARE
         strokeWidth = dp(3f)
     }
-    private val line = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = blue; strokeWidth = dp(2f) }
 
-    private var frac = 0f
+    private var scanning = false
+    private var curColor = grey
+
     private val animator = ValueAnimator.ofFloat(0f, 1f).apply {
-        duration = 2200
+        duration = 1600
         repeatCount = ValueAnimator.INFINITE
         repeatMode = ValueAnimator.RESTART
         interpolator = LinearInterpolator()
-        addUpdateListener { frac = it.animatedValue as Float; invalidate() }
+        addUpdateListener { curColor = colorAt(it.animatedValue as Float); invalidate() }
     }
 
-    init { animator.start() }
-
     private fun dp(v: Float) = v * resources.displayMetrics.density
+
+    // 3 equal segments across one cycle: grey->blue, blue->green, green->grey
+    private fun colorAt(t: Float): Int {
+        val seg = t * 3f
+        return when {
+            seg < 1f -> evaluator.evaluate(seg, grey, blue) as Int
+            seg < 2f -> evaluator.evaluate(seg - 1f, blue, green) as Int
+            else     -> evaluator.evaluate(seg - 2f, green, grey) as Int
+        }
+    }
+
+    /** Start/stop the colour cycle. Off = static grey. */
+    fun setScanning(on: Boolean) {
+        if (on == scanning) return
+        scanning = on
+        if (on) {
+            if (!animator.isStarted) animator.start()
+        } else {
+            animator.cancel()
+            curColor = grey
+            invalidate()
+        }
+    }
+
+    /** Snap to solid green on a successful decode. */
+    fun lock() {
+        scanning = false
+        animator.cancel()
+        curColor = green
+        invalidate()
+    }
 
     override fun onDraw(canvas: Canvas) {
         val box = minOf(width, height) * 0.62f
@@ -521,13 +567,11 @@ class ReticleView(context: Context, attrs: AttributeSet?) : View(context, attrs)
         val l = cx - half; val t = cy - half; val r = cx + half; val btm = cy + half
         val len = dp(28f)
 
+        bracket.color = curColor
         canvas.drawLine(l, t, l + len, t, bracket); canvas.drawLine(l, t, l, t + len, bracket)
         canvas.drawLine(r, t, r - len, t, bracket); canvas.drawLine(r, t, r, t + len, bracket)
         canvas.drawLine(l, btm, l + len, btm, bracket); canvas.drawLine(l, btm, l, btm - len, bracket)
         canvas.drawLine(r, btm, r - len, btm, bracket); canvas.drawLine(r, btm, r, btm - len, bracket)
-
-        val y = t + box * frac
-        canvas.drawLine(l + dp(2f), y, r - dp(2f), y, line)
     }
 
     override fun onDetachedFromWindow() {
