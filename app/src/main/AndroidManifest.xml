@@ -3,6 +3,12 @@
 
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.VIBRATE" />
+
+    <!-- Network access for LAN / remote database modes and LAN autodiscovery.
+         On-device (local SQLite) mode uses none of this. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <!-- Only needed to save PNGs on Android 9 and below; Android 10+ uses MediaStore -->
     <uses-permission
         android:name="android.permission.WRITE_EXTERNAL_STORAGE"

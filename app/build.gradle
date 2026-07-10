@@ -44,4 +44,16 @@ dependencies {
     implementation 'com.journeyapps:zxing-android-embedded:4.3.0'
     // Explicit core for encoding + image-file decoding helpers
     implementation 'com.google.zxing:core:3.5.3'
+
+    // Encrypted storage for connection credentials
+    implementation 'androidx.security:security-crypto:1.1.0-alpha06'
+
+    // JDBC drivers for LAN / remote database modes (release build keeps minify
+    // off, so these are not stripped). minSdk 26 has native multidex.
+    implementation 'org.postgresql:postgresql:42.7.3'
+    implementation('org.mariadb.jdbc:mariadb-java-client:3.3.3') {
+        // pull only the driver; skip optional Windows-auth / logging extras
+        exclude group: 'com.github.waffle'
+        exclude group: 'org.slf4j'
+    }
 }

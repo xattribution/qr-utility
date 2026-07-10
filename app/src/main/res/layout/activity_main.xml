@@ -85,7 +85,7 @@
                     android:layout_gravity="bottom"
                     android:gravity="center"
                     android:paddingBottom="12dp"
-                    android:text="CAMERA OFF — PRESS START"
+                    android:text="STARTING CAMERA…"
                     android:textColor="@color/muted"
                     android:textSize="11sp"
                     android:fontFamily="monospace"
@@ -401,6 +401,175 @@
                     android:orientation="vertical"/>
             </ScrollView>
         </LinearLayout>
+
+        <!-- ========== DATA ========== -->
+        <ScrollView
+            android:id="@+id/viewData"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView style="@style/FieldLabel" android:text="CONNECTION"/>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:background="@drawable/panel_box"
+                    android:padding="14dp">
+                    <TextView
+                        android:id="@+id/tvDbConn"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="On-device (SQLite)"
+                        android:textColor="@color/ink"
+                        android:textSize="14sp"
+                        android:fontFamily="monospace"/>
+                    <TextView
+                        android:id="@+id/btnAddConn"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:paddingHorizontal="14dp"
+                        android:paddingVertical="9dp"
+                        android:text="ADD"
+                        android:textColor="@color/blue"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        android:fontFamily="monospace"
+                        android:background="@drawable/outline_box"
+                        android:clickable="true"
+                        android:focusable="true"/>
+                </LinearLayout>
+                <TextView
+                    android:id="@+id/tvDbStatus"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:textColor="@color/muted"
+                    android:textSize="11sp"
+                    android:fontFamily="monospace"/>
+
+                <TextView android:id="@+id/tvSourceLabel" style="@style/FieldLabel" android:text="SOURCE DATA"
+                    android:layout_marginTop="18dp"/>
+
+                <LinearLayout
+                    android:id="@+id/cardRecords"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:background="@drawable/panel_box"
+                    android:padding="14dp">
+                    <TextView
+                        android:id="@+id/tvRecordCount"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="0 rows loaded"
+                        android:textColor="@color/ink"
+                        android:textSize="13sp"
+                        android:fontFamily="monospace"/>
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="CSV: one row per code — label,content (or just content)"
+                        android:textColor="@color/muted"
+                        android:textSize="10sp"
+                        android:fontFamily="monospace"/>
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:background="@color/line"
+                        android:layout_marginTop="12dp">
+                        <Button android:id="@+id/btnImportCsv" style="@style/CamAction"
+                            android:layout_marginEnd="1dp" android:text="IMPORT CSV"/>
+                        <Button android:id="@+id/btnClearRecords" style="@style/CamAction"
+                            android:text="CLEAR"/>
+                    </LinearLayout>
+                </LinearLayout>
+
+                <TextView style="@style/FieldLabel" android:text="GENERATE QR CODES"
+                    android:layout_marginTop="18dp"/>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Encodes each row's content to a PNG in Pictures/QRUtility."
+                    android:textColor="@color/muted"
+                    android:textSize="11sp"
+                    android:fontFamily="monospace"/>
+                <Button
+                    android:id="@+id/btnGenerateBatch"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:text="GENERATE → FOLDER"
+                    android:textColor="@color/white"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.1"
+                    android:background="@drawable/btn_blue"
+                    android:stateListAnimator="@null"/>
+                <TextView
+                    android:id="@+id/tvGenStatus"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:textColor="@color/muted"
+                    android:textSize="11sp"
+                    android:fontFamily="monospace"/>
+
+                <TextView style="@style/FieldLabel" android:text="CAPTURE SCANS"
+                    android:layout_marginTop="18dp"/>
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:background="@drawable/panel_box"
+                    android:padding="14dp">
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Save scans to this database"
+                        android:textColor="@color/ink"
+                        android:textSize="14sp"
+                        android:fontFamily="monospace"/>
+                    <androidx.appcompat.widget.SwitchCompat
+                        android:id="@+id/swSaveScans"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"/>
+                </LinearLayout>
+                <LinearLayout
+                    android:id="@+id/rowScanExport"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:background="@color/line"
+                    android:layout_marginTop="12dp">
+                    <Button android:id="@+id/btnExportScans" style="@style/CamAction"
+                        android:layout_marginEnd="1dp" android:text="EXPORT CSV"/>
+                    <Button android:id="@+id/btnClearScans" style="@style/CamAction"
+                        android:text="CLEAR SCANS"/>
+                </LinearLayout>
+                <TextView
+                    android:id="@+id/tvScanCount"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="0 scans stored"
+                    android:textColor="@color/muted"
+                    android:textSize="11sp"
+                    android:fontFamily="monospace"/>
+            </LinearLayout>
+        </ScrollView>
     </FrameLayout>
 
     <!-- ============ TAB BAR ============ -->
@@ -424,6 +593,11 @@
         <LinearLayout android:id="@+id/tabLog" style="@style/Tab">
             <ImageView android:id="@+id/icTabLog" style="@style/TabIcon" android:src="@drawable/ic_log"/>
             <TextView android:id="@+id/tvTabLog" style="@style/TabLabel" android:text="LOG"/>
+        </LinearLayout>
+
+        <LinearLayout android:id="@+id/tabData" style="@style/Tab">
+            <ImageView android:id="@+id/icTabData" style="@style/TabIcon" android:src="@drawable/ic_data"/>
+            <TextView android:id="@+id/tvTabData" style="@style/TabLabel" android:text="DATA"/>
         </LinearLayout>
     </LinearLayout>
 </LinearLayout>

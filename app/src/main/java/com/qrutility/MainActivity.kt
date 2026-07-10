@@ -1,6 +1,7 @@
 package com.qrutility
 
 import android.Manifest
+import android.animation.ArgbEvaluator
 import android.animation.ValueAnimator
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -27,9 +28,14 @@ import android.provider.MediaStore
 import android.util.AttributeSet
 import android.view.View
 import android.view.animation.LinearInterpolator
+import android.widget.ArrayAdapter
+import android.widget.Button
+import android.widget.EditText
 import android.widget.ImageView
+import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
@@ -47,6 +53,18 @@ import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel
 import com.journeyapps.barcodescanner.BarcodeCallback
 import com.journeyapps.barcodescanner.BarcodeResult
 import com.journeyapps.barcodescanner.DefaultDecoderFactory
+import com.qrutility.data.BatchExporter
+import com.qrutility.data.ConnectionProfile
+import com.qrutility.data.CsvUtil
+import com.qrutility.data.DataSource
+import com.qrutility.data.DbExecutor
+import com.qrutility.data.DbType
+import com.qrutility.data.JdbcSource
+import com.qrutility.data.LanScanner
+import com.qrutility.data.LocalDataSource
+import com.qrutility.data.LocalDb
+import com.qrutility.data.ProfileStore
+import java.util.UUID
 import com.qrutility.databinding.ActivityMainBinding
 import org.json.JSONArray
 import org.json.JSONObject
@@ -70,6 +88,12 @@ class MainActivity : AppCompatActivity() {
     private var currentBitmap: Bitmap? = null
     private var pendingSave: Bitmap? = null
 
+    private val localDb by lazy { LocalDb(this) }
+    private val profileStore by lazy { ProfileStore(this) }
+    private lateinit var dataSource: DataSource
+    private var activeProfileId: String? = null
+    private var saveScansToDb = false
+
     private val prefs by lazy { getSharedPreferences("qrutil", MODE_PRIVATE) }
     private val handler = Handler(Looper.getMainLooper())
     private val genRunnable = Runnable { generateQr() }
@@ -88,6 +112,9 @@ class MainActivity : AppCompatActivity() {
     }
     private val pickImage = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         uri?.let { decodeImage(it) }
+    }
+    private val pickCsv = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        uri?.let { importCsv(it) }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -140,8 +167,30 @@ class MainActivity : AppCompatActivity() {
         // log
         b.btnClear.setOnClickListener { onClearTap() }
 
-        showTab(0)
+        // data
+        dataSource = LocalDataSource(localDb)
+        b.tabData.setOnClickListener { showTab(3) }
+        b.btnAddConn.setOnClickListener { showConnectionEditor(null) }
+        b.tvDbConn.setOnClickListener { showConnectionChooser() }
+        b.tvDbConn.setOnLongClickListener {
+            val id = activeProfileId
+            if (id != null) profileStore.all().find { it.id == id }?.let { showConnectionEditor(it) }
+            true
+        }
+        updateConnUi()
+        b.btnImportCsv.setOnClickListener { pickCsv.launch("*/*") }
+        b.btnClearRecords.setOnClickListener {
+            DbExecutor.run({ localDb.clearRecords() }) { refreshDataCounts() }
+        }
+        b.btnGenerateBatch.setOnClickListener { generateBatch() }
+        b.swSaveScans.setOnCheckedChangeListener { _, checked -> saveScansToDb = checked }
+        b.btnExportScans.setOnClickListener { exportScans() }
+        b.btnClearScans.setOnClickListener {
+            DbExecutor.run({ localDb.clearScans() }) { refreshDataCounts() }
+        }
+
         setStatus("STANDBY", Status.OFF)
+        showTab(0)   // opens the Scan tab and auto-starts the camera
     }
 
     /* ---------------- navigation ---------------- */
@@ -150,17 +199,24 @@ class MainActivity : AppCompatActivity() {
         b.viewScan.visibility = if (i == 0) View.VISIBLE else View.GONE
         b.viewCreate.visibility = if (i == 1) View.VISIBLE else View.GONE
         b.viewLog.visibility = if (i == 2) View.VISIBLE else View.GONE
+        b.viewData.visibility = if (i == 3) View.VISIBLE else View.GONE
 
         styleTab(b.tvTabScan, b.icTabScan, i == 0)
         styleTab(b.tvTabCreate, b.icTabCreate, i == 1)
         styleTab(b.tvTabLog, b.icTabLog, i == 2)
+        styleTab(b.tvTabData, b.icTabData, i == 3)
 
         if (i == 0) {
-            if (scanning && hasCamera()) b.barcodeView.resume()
+            when {
+                scanning -> if (hasCamera()) b.barcodeView.resume()
+                // auto-open the camera when entering Scan, unless a result is on screen
+                !awaitingRescan && b.resultPanel.visibility != View.VISIBLE -> startScan()
+            }
         } else {
             b.barcodeView.pause()
         }
         if (i == 2) renderLog()
+        if (i == 3) refreshDataCounts()
     }
 
     private fun styleTab(label: TextView, icon: ImageView, active: Boolean) {
@@ -179,6 +235,7 @@ class MainActivity : AppCompatActivity() {
         awaitingRescan = false
         b.resultPanel.visibility = View.GONE
         b.barcodeView.resume()
+        b.reticle.setScanning(true)
         b.tvStartLabel.text = "STOP"
         b.tvVpHint.text = "ALIGN CODE WITHIN FRAME"
         setStatus("SCANNING", Status.OK)
@@ -187,10 +244,11 @@ class MainActivity : AppCompatActivity() {
     private fun stopScan() {
         scanning = false
         b.barcodeView.pause()
+        b.reticle.setScanning(false)
         if (torchOn) { torchOn = false; b.barcodeView.setTorch(false); b.btnTorch.setBackgroundResource(R.drawable.btn_panel) }
         b.tvStartLabel.text = "START"
         if (b.resultPanel.visibility != View.VISIBLE) {
-            b.tvVpHint.text = "CAMERA OFF — PRESS START"
+            b.tvVpHint.text = "CAMERA OFF — TAP START TO RESUME"
             setStatus("STANDBY", Status.OFF)
         }
     }
@@ -207,6 +265,7 @@ class MainActivity : AppCompatActivity() {
         awaitingRescan = true
         scanning = false
         b.barcodeView.pause()
+        b.reticle.lock()
         if (torchOn) { torchOn = false; b.barcodeView.setTorch(false); b.btnTorch.setBackgroundResource(R.drawable.btn_panel) }
         buzz()
         b.tvStartLabel.text = "START"
@@ -216,6 +275,12 @@ class MainActivity : AppCompatActivity() {
         b.resultPanel.visibility = View.VISIBLE
         setStatus("MATCH", Status.OK)
         logAdd("scan", text)
+        if (saveScansToDb) {
+            DbExecutor.run({ dataSource.insertScan(text, "scan") }) { res ->
+                res.onFailure { toast("DB save failed: ${it.message}") }
+                if (currentTab == 3) refreshDataCounts()
+            }
+        }
     }
 
     private fun rescan() {
@@ -428,6 +493,246 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    /* ---------------- data / database ---------------- */
+    private fun activateLocal() {
+        dataSource = LocalDataSource(localDb)
+        activeProfileId = null
+        updateConnUi()
+        refreshDataCounts()
+    }
+
+    private fun activateProfile(p: ConnectionProfile) {
+        dataSource = JdbcSource(p)
+        activeProfileId = p.id
+        updateConnUi()
+        b.tvDbStatus.text = "Testing ${dataSource.label}…"
+        DbExecutor.run({ dataSource.test() }) { res ->
+            res.onSuccess { b.tvDbStatus.text = "Connected: ${dataSource.label}" }
+                .onFailure { b.tvDbStatus.text = "Connect failed: ${it.message}" }
+        }
+    }
+
+    /** Show/hide the on-device-only sections depending on the active source. */
+    private fun updateConnUi() {
+        b.tvDbConn.text = dataSource.label
+        val local = activeProfileId == null
+        val localVis = if (local) View.VISIBLE else View.GONE
+        b.tvSourceLabel.visibility = localVis
+        b.cardRecords.visibility = localVis
+        b.rowScanExport.visibility = localVis
+        b.tvScanCount.visibility = localVis
+    }
+
+    private fun showConnectionChooser() {
+        val profiles = profileStore.all()
+        val labels = ArrayList<String>()
+        labels.add("On-device (SQLite)")
+        profiles.forEach { labels.add("${it.name}  ·  ${it.type}") }
+        labels.add("＋ Add connection…")
+        labels.add("⌕ Scan local network…")
+        AlertDialog.Builder(this)
+            .setTitle("Data connection")
+            .setItems(labels.toTypedArray()) { _, which ->
+                when (which) {
+                    0 -> activateLocal()
+                    labels.size - 2 -> showConnectionEditor(null)
+                    labels.size - 1 -> showLanScan()
+                    else -> activateProfile(profiles[which - 1])
+                }
+            }
+            .show()
+    }
+
+    private fun showLanScan() {
+        val progress = AlertDialog.Builder(this)
+            .setTitle("Scanning local network…")
+            .setMessage("Probing for PostgreSQL (5432) and MySQL (3306) hosts.")
+            .setCancelable(true)
+            .show()
+        DbExecutor.run({ LanScanner.discover() }) { res ->
+            progress.dismiss()
+            res.onSuccess { found ->
+                if (found.isEmpty()) {
+                    toast("No databases found on the local network")
+                } else {
+                    val items = found.map { "${it.host}:${it.port}  ·  ${it.type}" }
+                    AlertDialog.Builder(this)
+                        .setTitle("Found ${found.size}")
+                        .setItems(items.toTypedArray()) { _, i ->
+                            val d = found[i]
+                            showConnectionEditor(
+                                null,
+                                ConnectionProfile(
+                                    id = UUID.randomUUID().toString(),
+                                    name = "${d.type} @ ${d.host}",
+                                    type = d.type, host = d.host, port = d.port
+                                )
+                            )
+                        }
+                        .show()
+                }
+            }.onFailure { toast("Scan failed: ${it.message}") }
+        }
+    }
+
+    private fun showConnectionEditor(existing: ConnectionProfile?, prefill: ConnectionProfile? = null) {
+        val view = layoutInflater.inflate(R.layout.dialog_connection, null)
+        val etName = view.findViewById<EditText>(R.id.etName)
+        val spType = view.findViewById<Spinner>(R.id.spType)
+        val etHost = view.findViewById<EditText>(R.id.etHost)
+        val etPort = view.findViewById<EditText>(R.id.etPort)
+        val etDatabase = view.findViewById<EditText>(R.id.etDatabase)
+        val etUser = view.findViewById<EditText>(R.id.etUser)
+        val etPassword = view.findViewById<EditText>(R.id.etPassword)
+        val etQuery = view.findViewById<EditText>(R.id.etQuery)
+        val etInsert = view.findViewById<EditText>(R.id.etInsert)
+        val btnTest = view.findViewById<Button>(R.id.btnTestConn)
+        val tvTest = view.findViewById<TextView>(R.id.tvTestResult)
+
+        val types = listOf(DbType.POSTGRES, DbType.MYSQL)
+        spType.adapter = ArrayAdapter(
+            this, android.R.layout.simple_spinner_dropdown_item, types.map { it.name }
+        )
+
+        (existing ?: prefill)?.let { p ->
+            etName.setText(p.name)
+            etHost.setText(p.host)
+            if (p.port > 0) etPort.setText(p.port.toString())
+            etDatabase.setText(p.database)
+            etUser.setText(p.user)
+            etPassword.setText(p.password)
+            etQuery.setText(p.generateQuery)
+            etInsert.setText(p.insertStatement)
+            spType.setSelection(types.indexOf(p.type).coerceAtLeast(0))
+        }
+
+        fun collect(): ConnectionProfile {
+            val type = types[spType.selectedItemPosition]
+            val host = etHost.text.toString().trim()
+            return ConnectionProfile(
+                id = existing?.id ?: UUID.randomUUID().toString(),
+                name = etName.text.toString().trim().ifBlank { "$type @ $host" },
+                type = type,
+                host = host,
+                port = etPort.text.toString().toIntOrNull() ?: 0,
+                database = etDatabase.text.toString().trim(),
+                user = etUser.text.toString(),
+                password = etPassword.text.toString(),
+                generateQuery = etQuery.text.toString().trim(),
+                insertStatement = etInsert.text.toString().trim()
+            )
+        }
+
+        btnTest.setOnClickListener {
+            tvTest.setTextColor(ContextCompat.getColor(this, R.color.muted))
+            tvTest.text = "Testing…"
+            DbExecutor.run({ JdbcSource(collect()).test() }) { res ->
+                res.onSuccess {
+                    tvTest.setTextColor(ContextCompat.getColor(this, R.color.ok))
+                    tvTest.text = "OK — connection succeeded"
+                }.onFailure {
+                    tvTest.setTextColor(ContextCompat.getColor(this, R.color.warn))
+                    tvTest.text = "Failed: ${it.message}"
+                }
+            }
+        }
+
+        val builder = AlertDialog.Builder(this)
+            .setTitle(if (existing == null) "Add connection" else "Edit connection")
+            .setView(view)
+            .setPositiveButton("Save") { _, _ ->
+                val p = collect()
+                if (p.host.isBlank()) { toast("Host is required"); return@setPositiveButton }
+                profileStore.upsert(p)
+                activateProfile(p)
+            }
+            .setNegativeButton("Cancel", null)
+        if (existing != null) {
+            builder.setNeutralButton("Delete") { _, _ ->
+                profileStore.delete(existing.id)
+                if (activeProfileId == existing.id) activateLocal() else toast("Connection deleted")
+            }
+        }
+        builder.show()
+    }
+
+    private fun refreshDataCounts() {
+        DbExecutor.run({ localDb.recordCount() to localDb.scanCount() }) { res ->
+            res.onSuccess { (records, scans) ->
+                b.tvRecordCount.text = "$records rows loaded"
+                b.tvScanCount.text = "$scans scans stored"
+            }
+        }
+    }
+
+    private fun importCsv(uri: Uri) {
+        b.tvDbStatus.text = "Importing…"
+        DbExecutor.run({
+            val text = contentResolver.openInputStream(uri)
+                ?.bufferedReader()?.use { it.readText() } ?: ""
+            val rows = CsvUtil.parse(text)
+            localDb.replaceRecords(rows)
+            rows.size
+        }) { res ->
+            res.onSuccess { n ->
+                b.tvDbStatus.text = "Imported $n rows"
+                refreshDataCounts()
+            }.onFailure { b.tvDbStatus.text = "Import failed: ${it.message}" }
+        }
+    }
+
+    private fun generateBatch() {
+        val ec = ecLevel
+        b.btnGenerateBatch.isEnabled = false
+        b.tvGenStatus.text = "Reading rows…"
+        DbExecutor.run({
+            val rows = dataSource.fetchRows()
+            if (rows.isEmpty()) throw IllegalStateException("No rows to generate")
+            BatchExporter.export(this, rows, ec, "batch-${System.currentTimeMillis()}")
+        }) { res ->
+            b.btnGenerateBatch.isEnabled = true
+            res.onSuccess { r ->
+                b.tvGenStatus.text = "Saved ${r.saved} PNGs → ${r.location}" +
+                    if (r.failed > 0) "  (${r.failed} failed)" else ""
+            }.onFailure { b.tvGenStatus.text = "Generate failed: ${it.message}" }
+        }
+    }
+
+    private fun exportScans() {
+        b.tvDbStatus.text = "Exporting…"
+        DbExecutor.run({
+            val scans = localDb.scans()
+            if (scans.isEmpty()) throw IllegalStateException("No scans to export")
+            val csv = CsvUtil.buildScansCsv(scans)
+            val loc = saveCsvToDownloads("qr-scans-${System.currentTimeMillis()}.csv", csv)
+            scans.size to loc
+        }) { res ->
+            res.onSuccess { (n, loc) -> b.tvDbStatus.text = "Exported $n scans → $loc" }
+                .onFailure { b.tvDbStatus.text = "Export failed: ${it.message}" }
+        }
+    }
+
+    private fun saveCsvToDownloads(name: String, text: String): String {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val values = ContentValues().apply {
+                put(MediaStore.Downloads.DISPLAY_NAME, name)
+                put(MediaStore.Downloads.MIME_TYPE, "text/csv")
+                put(MediaStore.Downloads.RELATIVE_PATH, "Download/QRUtility")
+            }
+            val uri = contentResolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
+                ?: throw IllegalStateException("Could not create file")
+            contentResolver.openOutputStream(uri)?.use { it.write(text.toByteArray()) }
+                ?: throw IllegalStateException("Could not write file")
+            "Download/QRUtility/$name"
+        } else {
+            val dir = File(getExternalFilesDir(null), "exports")
+            if (!dir.exists()) dir.mkdirs()
+            val f = File(dir, name)
+            f.writeText(text)
+            f.absolutePath
+        }
+    }
+
     /* ---------------- utils ---------------- */
     private fun copy(text: String) {
         val cm = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
@@ -491,28 +796,66 @@ class MainActivity : AppCompatActivity() {
     }
 }
 
-/* ==================== reticle overlay ==================== */
+/* ==================== reticle overlay ====================
+ * Scanning state is shown by the corner brackets cycling colour
+ * grey -> blue -> green (no sweeping line). A successful decode
+ * snaps them to solid green.
+ */
 class ReticleView(context: Context, attrs: AttributeSet?) : View(context, attrs) {
 
+    private val grey = Color.parseColor("#8A93A0")
     private val blue = Color.parseColor("#2F6BFF")
+    private val green = Color.parseColor("#2FD07B")
+
+    private val evaluator = ArgbEvaluator()
     private val bracket = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = blue; style = Paint.Style.STROKE; strokeCap = Paint.Cap.SQUARE
+        color = grey; style = Paint.Style.STROKE; strokeCap = Paint.Cap.SQUARE
         strokeWidth = dp(3f)
     }
-    private val line = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = blue; strokeWidth = dp(2f) }
 
-    private var frac = 0f
+    private var scanning = false
+    private var curColor = grey
+
     private val animator = ValueAnimator.ofFloat(0f, 1f).apply {
-        duration = 2200
+        duration = 1600
         repeatCount = ValueAnimator.INFINITE
         repeatMode = ValueAnimator.RESTART
         interpolator = LinearInterpolator()
-        addUpdateListener { frac = it.animatedValue as Float; invalidate() }
+        addUpdateListener { curColor = colorAt(it.animatedValue as Float); invalidate() }
     }
 
-    init { animator.start() }
-
     private fun dp(v: Float) = v * resources.displayMetrics.density
+
+    // 3 equal segments across one cycle: grey->blue, blue->green, green->grey
+    private fun colorAt(t: Float): Int {
+        val seg = t * 3f
+        return when {
+            seg < 1f -> evaluator.evaluate(seg, grey, blue) as Int
+            seg < 2f -> evaluator.evaluate(seg - 1f, blue, green) as Int
+            else     -> evaluator.evaluate(seg - 2f, green, grey) as Int
+        }
+    }
+
+    /** Start/stop the colour cycle. Off = static grey. */
+    fun setScanning(on: Boolean) {
+        if (on == scanning) return
+        scanning = on
+        if (on) {
+            if (!animator.isStarted) animator.start()
+        } else {
+            animator.cancel()
+            curColor = grey
+            invalidate()
+        }
+    }
+
+    /** Snap to solid green on a successful decode. */
+    fun lock() {
+        scanning = false
+        animator.cancel()
+        curColor = green
+        invalidate()
+    }
 
     override fun onDraw(canvas: Canvas) {
         val box = minOf(width, height) * 0.62f
@@ -521,13 +864,11 @@ class ReticleView(context: Context, attrs: AttributeSet?) : View(context, attrs)
         val l = cx - half; val t = cy - half; val r = cx + half; val btm = cy + half
         val len = dp(28f)
 
+        bracket.color = curColor
         canvas.drawLine(l, t, l + len, t, bracket); canvas.drawLine(l, t, l, t + len, bracket)
         canvas.drawLine(r, t, r - len, t, bracket); canvas.drawLine(r, t, r, t + len, bracket)
         canvas.drawLine(l, btm, l + len, btm, bracket); canvas.drawLine(l, btm, l, btm - len, bracket)
         canvas.drawLine(r, btm, r - len, btm, bracket); canvas.drawLine(r, btm, r, btm - len, bracket)
-
-        val y = t + box * frac
-        canvas.drawLine(l + dp(2f), y, r - dp(2f), y, line)
     }
 
     override fun onDetachedFromWindow() {
