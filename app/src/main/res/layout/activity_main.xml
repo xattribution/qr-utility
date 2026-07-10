@@ -457,10 +457,11 @@
                     android:textSize="11sp"
                     android:fontFamily="monospace"/>
 
-                <TextView style="@style/FieldLabel" android:text="SOURCE DATA"
+                <TextView android:id="@+id/tvSourceLabel" style="@style/FieldLabel" android:text="SOURCE DATA"
                     android:layout_marginTop="18dp"/>
 
                 <LinearLayout
+                    android:id="@+id/cardRecords"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
@@ -547,6 +548,7 @@
                         android:layout_height="wrap_content"/>
                 </LinearLayout>
                 <LinearLayout
+                    android:id="@+id/rowScanExport"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"

@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@color/panel">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <TextView style="@style/FieldLabel" android:text="NAME"/>
+        <EditText android:id="@+id/etName" style="@style/DlgField"
+            android:hint="e.g. Warehouse DB" android:inputType="text"/>
+
+        <TextView style="@style/FieldLabel" android:text="TYPE" android:layout_marginTop="12dp"/>
+        <Spinner android:id="@+id/spType"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:background="@drawable/well" android:padding="10dp"/>
+
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="horizontal" android:layout_marginTop="12dp">
+            <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                android:layout_weight="2" android:orientation="vertical" android:layout_marginEnd="8dp">
+                <TextView style="@style/FieldLabel" android:text="HOST"/>
+                <EditText android:id="@+id/etHost" style="@style/DlgField"
+                    android:hint="10.0.0.5" android:inputType="textNoSuggestions"/>
+            </LinearLayout>
+            <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                android:layout_weight="1" android:orientation="vertical">
+                <TextView style="@style/FieldLabel" android:text="PORT"/>
+                <EditText android:id="@+id/etPort" style="@style/DlgField"
+                    android:hint="5432" android:inputType="number"/>
+            </LinearLayout>
+        </LinearLayout>
+
+        <TextView style="@style/FieldLabel" android:text="DATABASE" android:layout_marginTop="12dp"/>
+        <EditText android:id="@+id/etDatabase" style="@style/DlgField"
+            android:hint="mydb" android:inputType="textNoSuggestions"/>
+
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="horizontal" android:layout_marginTop="12dp">
+            <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                android:layout_weight="1" android:orientation="vertical" android:layout_marginEnd="8dp">
+                <TextView style="@style/FieldLabel" android:text="USER"/>
+                <EditText android:id="@+id/etUser" style="@style/DlgField"
+                    android:inputType="textNoSuggestions"/>
+            </LinearLayout>
+            <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                android:layout_weight="1" android:orientation="vertical">
+                <TextView style="@style/FieldLabel" android:text="PASSWORD"/>
+                <EditText android:id="@+id/etPassword" style="@style/DlgField"
+                    android:inputType="textPassword"/>
+            </LinearLayout>
+        </LinearLayout>
+
+        <TextView style="@style/FieldLabel" android:text="GENERATE — SELECT QUERY"
+            android:layout_marginTop="12dp"/>
+        <EditText android:id="@+id/etQuery" style="@style/DlgField"
+            android:hint="SELECT label, content FROM items"
+            android:inputType="textMultiLine|textNoSuggestions" android:minLines="2"/>
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="1st column = filename label, 2nd = QR content"
+            android:textColor="@color/muted" android:textSize="10sp" android:fontFamily="monospace"/>
+
+        <TextView style="@style/FieldLabel" android:text="CAPTURE — INSERT STATEMENT"
+            android:layout_marginTop="12dp"/>
+        <EditText android:id="@+id/etInsert" style="@style/DlgField"
+            android:hint="INSERT INTO scans(value, type) VALUES(?, ?)"
+            android:inputType="textMultiLine|textNoSuggestions" android:minLines="2"/>
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="params — 1 = scanned value, 2 = type (optional)"
+            android:textColor="@color/muted" android:textSize="10sp" android:fontFamily="monospace"/>
+
+        <Button android:id="@+id/btnTestConn"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="16dp" android:text="TEST CONNECTION"
+            android:textColor="@color/ink" android:textStyle="bold"
+            android:background="@drawable/outline_box" android:stateListAnimator="@null"/>
+        <TextView android:id="@+id/tvTestResult"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="8dp" android:textSize="12sp" android:fontFamily="monospace"
+            android:textColor="@color/muted"/>
+    </LinearLayout>
+</ScrollView>

@@ -28,9 +28,14 @@ import android.provider.MediaStore
 import android.util.AttributeSet
 import android.view.View
 import android.view.animation.LinearInterpolator
+import android.widget.ArrayAdapter
+import android.widget.Button
+import android.widget.EditText
 import android.widget.ImageView
+import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
@@ -49,11 +54,16 @@ import com.journeyapps.barcodescanner.BarcodeCallback
 import com.journeyapps.barcodescanner.BarcodeResult
 import com.journeyapps.barcodescanner.DefaultDecoderFactory
 import com.qrutility.data.BatchExporter
+import com.qrutility.data.ConnectionProfile
 import com.qrutility.data.CsvUtil
 import com.qrutility.data.DataSource
 import com.qrutility.data.DbExecutor
+import com.qrutility.data.DbType
+import com.qrutility.data.JdbcSource
 import com.qrutility.data.LocalDataSource
 import com.qrutility.data.LocalDb
+import com.qrutility.data.ProfileStore
+import java.util.UUID
 import com.qrutility.databinding.ActivityMainBinding
 import org.json.JSONArray
 import org.json.JSONObject
@@ -78,7 +88,9 @@ class MainActivity : AppCompatActivity() {
     private var pendingSave: Bitmap? = null
 
     private val localDb by lazy { LocalDb(this) }
+    private val profileStore by lazy { ProfileStore(this) }
     private lateinit var dataSource: DataSource
+    private var activeProfileId: String? = null
     private var saveScansToDb = false
 
     private val prefs by lazy { getSharedPreferences("qrutil", MODE_PRIVATE) }
@@ -157,8 +169,14 @@ class MainActivity : AppCompatActivity() {
         // data
         dataSource = LocalDataSource(localDb)
         b.tabData.setOnClickListener { showTab(3) }
-        b.tvDbConn.text = dataSource.label
-        b.btnAddConn.setOnClickListener { toast("Network connections: coming soon") }
+        b.btnAddConn.setOnClickListener { showConnectionEditor(null) }
+        b.tvDbConn.setOnClickListener { showConnectionChooser() }
+        b.tvDbConn.setOnLongClickListener {
+            val id = activeProfileId
+            if (id != null) profileStore.all().find { it.id == id }?.let { showConnectionEditor(it) }
+            true
+        }
+        updateConnUi()
         b.btnImportCsv.setOnClickListener { pickCsv.launch("*/*") }
         b.btnClearRecords.setOnClickListener {
             DbExecutor.run({ localDb.clearRecords() }) { refreshDataCounts() }
@@ -475,6 +493,134 @@ class MainActivity : AppCompatActivity() {
     }
 
     /* ---------------- data / database ---------------- */
+    private fun activateLocal() {
+        dataSource = LocalDataSource(localDb)
+        activeProfileId = null
+        updateConnUi()
+        refreshDataCounts()
+    }
+
+    private fun activateProfile(p: ConnectionProfile) {
+        dataSource = JdbcSource(p)
+        activeProfileId = p.id
+        updateConnUi()
+        b.tvDbStatus.text = "Testing ${dataSource.label}…"
+        DbExecutor.run({ dataSource.test() }) { res ->
+            res.onSuccess { b.tvDbStatus.text = "Connected: ${dataSource.label}" }
+                .onFailure { b.tvDbStatus.text = "Connect failed: ${it.message}" }
+        }
+    }
+
+    /** Show/hide the on-device-only sections depending on the active source. */
+    private fun updateConnUi() {
+        b.tvDbConn.text = dataSource.label
+        val local = activeProfileId == null
+        val localVis = if (local) View.VISIBLE else View.GONE
+        b.tvSourceLabel.visibility = localVis
+        b.cardRecords.visibility = localVis
+        b.rowScanExport.visibility = localVis
+        b.tvScanCount.visibility = localVis
+    }
+
+    private fun showConnectionChooser() {
+        val profiles = profileStore.all()
+        val labels = ArrayList<String>()
+        labels.add("On-device (SQLite)")
+        profiles.forEach { labels.add("${it.name}  ·  ${it.type}") }
+        labels.add("＋ Add connection…")
+        AlertDialog.Builder(this)
+            .setTitle("Data connection")
+            .setItems(labels.toTypedArray()) { _, which ->
+                when {
+                    which == 0 -> activateLocal()
+                    which == labels.size - 1 -> showConnectionEditor(null)
+                    else -> activateProfile(profiles[which - 1])
+                }
+            }
+            .show()
+    }
+
+    private fun showConnectionEditor(existing: ConnectionProfile?) {
+        val view = layoutInflater.inflate(R.layout.dialog_connection, null)
+        val etName = view.findViewById<EditText>(R.id.etName)
+        val spType = view.findViewById<Spinner>(R.id.spType)
+        val etHost = view.findViewById<EditText>(R.id.etHost)
+        val etPort = view.findViewById<EditText>(R.id.etPort)
+        val etDatabase = view.findViewById<EditText>(R.id.etDatabase)
+        val etUser = view.findViewById<EditText>(R.id.etUser)
+        val etPassword = view.findViewById<EditText>(R.id.etPassword)
+        val etQuery = view.findViewById<EditText>(R.id.etQuery)
+        val etInsert = view.findViewById<EditText>(R.id.etInsert)
+        val btnTest = view.findViewById<Button>(R.id.btnTestConn)
+        val tvTest = view.findViewById<TextView>(R.id.tvTestResult)
+
+        val types = listOf(DbType.POSTGRES, DbType.MYSQL)
+        spType.adapter = ArrayAdapter(
+            this, android.R.layout.simple_spinner_dropdown_item, types.map { it.name }
+        )
+
+        existing?.let { p ->
+            etName.setText(p.name)
+            etHost.setText(p.host)
+            if (p.port > 0) etPort.setText(p.port.toString())
+            etDatabase.setText(p.database)
+            etUser.setText(p.user)
+            etPassword.setText(p.password)
+            etQuery.setText(p.generateQuery)
+            etInsert.setText(p.insertStatement)
+            spType.setSelection(types.indexOf(p.type).coerceAtLeast(0))
+        }
+
+        fun collect(): ConnectionProfile {
+            val type = types[spType.selectedItemPosition]
+            val host = etHost.text.toString().trim()
+            return ConnectionProfile(
+                id = existing?.id ?: UUID.randomUUID().toString(),
+                name = etName.text.toString().trim().ifBlank { "$type @ $host" },
+                type = type,
+                host = host,
+                port = etPort.text.toString().toIntOrNull() ?: 0,
+                database = etDatabase.text.toString().trim(),
+                user = etUser.text.toString(),
+                password = etPassword.text.toString(),
+                generateQuery = etQuery.text.toString().trim(),
+                insertStatement = etInsert.text.toString().trim()
+            )
+        }
+
+        btnTest.setOnClickListener {
+            tvTest.setTextColor(ContextCompat.getColor(this, R.color.muted))
+            tvTest.text = "Testing…"
+            DbExecutor.run({ JdbcSource(collect()).test() }) { res ->
+                res.onSuccess {
+                    tvTest.setTextColor(ContextCompat.getColor(this, R.color.ok))
+                    tvTest.text = "OK — connection succeeded"
+                }.onFailure {
+                    tvTest.setTextColor(ContextCompat.getColor(this, R.color.warn))
+                    tvTest.text = "Failed: ${it.message}"
+                }
+            }
+        }
+
+        val builder = AlertDialog.Builder(this)
+            .setTitle(if (existing == null) "Add connection" else "Edit connection")
+            .setView(view)
+            .setPositiveButton("Save") { _, _ ->
+                val p = collect()
+                if (p.host.isBlank()) { toast("Host is required"); return@setPositiveButton }
+                profileStore.upsert(p)
+                activateProfile(p)
+            }
+            .setNegativeButton("Cancel", null)
+        if (existing != null) {
+            builder.setNeutralButton("Delete") { _, _ ->
+                profileStore.delete(existing.id)
+                if (activeProfileId == existing.id) activateLocal() else toast("Connection deleted")
+            }
+        }
+        builder.show()
+    }
+
     private fun refreshDataCounts() {
         DbExecutor.run({ localDb.recordCount() to localDb.scanCount() }) { res ->
             res.onSuccess { (records, scans) ->
